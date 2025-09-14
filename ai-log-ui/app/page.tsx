@@ -1,14 +1,26 @@
+
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Textarea, Input, Button, LoadingSpinner, ErrorAlert, SeverityBadge, CopyButton } from '@/components'
 
 import { ThemeToggle } from "@/components/ThemeToggle"
 
+type ParsedResult = {
+  summary?: string;
+  issue?: string;
+  solution?: string;
+  severity?: string;
+};
+type ApiResult = {
+  raw_llm?: string;
+  parsed?: ParsedResult;
+};
+
 export default function Home() {
   const [log, setLog] = useState('')
   const [context, setContext] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<ApiResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadingMessage, setLoadingMessage] = useState("Processing your log...")
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -72,13 +84,15 @@ export default function Home() {
 
       const data = await response.json();
       setResult(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("API Error:", err)
-      if (err instanceof TypeError && err.message.includes('fetch')) {
+      if (err instanceof TypeError && typeof err.message === 'string' && err.message.includes('fetch')) {
         // Network or fetch-related error
         setError('The server did not respond. Please check if it is running.');
-      } else {
+      } else if (err instanceof Error) {
         setError(`An unexpected error occurred: ${err.message}`);
+      } else {
+        setError('An unexpected error occurred.');
       }
     } finally {
       setLoading(false)
@@ -182,7 +196,7 @@ export default function Home() {
                     <div className="flex-1 flex items-center justify-between gap-3">
                       <CardTitle className="m-0">Log Explanation</CardTitle>
                       <CopyButton
-                        getText={() => result.parsed ? result.parsed.summary || result.raw_llm : result.raw_llm}
+                        getText={() => result.parsed ? result.parsed.summary ?? result.raw_llm ?? '' : result.raw_llm ?? ''}
                         label="Copy Explanation"
                         size="sm"
                         variant="outline"
@@ -238,7 +252,7 @@ export default function Home() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CopyButton
-                        getText={() => result.raw_llm}
+                        getText={() => result.raw_llm ?? ''}
                         label="Copy Raw"
                         size="sm"
                         variant="subtle"
