@@ -25,8 +25,8 @@ Write-Host "Activating virtual environment..."
 & $venvPath
 
 # --- Step 2: Install/Update Dependencies ---
-Write-Host "Installing dependencies from backend/requirements.txt..."
-pip install -r (Join-Path $scriptDir "backend/requirements.txt")
+Write-Host "Installing dependencies from /requirements.txt..."
+pip install -r (Join-Path $scriptDir "/requirements.txt")
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to install dependencies."
     exit 1
