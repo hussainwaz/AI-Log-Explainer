@@ -6,7 +6,7 @@ EXPLAINER_SYSTEM_PROMPT = (
 	"a step-by-step reproduction checklist (if possible), list probable fixes (ranked), "
 	"assign a severity (low/medium/high/critical), and suggest tests to validate the fix. "
 	"Output must be valid JSON with keys: summary, root_cause, probable_fixes (list), severity, "
-	"reproduction_steps (list), follow_up_tests (list), confidence_score (0-100), and notes."
+	"reproduction_steps (list), follow_up_tests (list), confidence_score (0-100), notes, and tasks (list of objects with id, title, description, priority)."
 )
 
 
