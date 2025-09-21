@@ -24,7 +24,7 @@ export default function TaskList({ tasks }: { tasks: Task[] }) {
     };
 
     if (!tasks || tasks.length === 0) {
-        return <p className="text-gray-500">No tasks available.</p>;
+        return <p className="text-[rgb(var(--color-fg-muted))]">No tasks available.</p>;
     }
 
     const getPriorityIcon = (priority?: string) => {
@@ -41,17 +41,17 @@ export default function TaskList({ tasks }: { tasks: Task[] }) {
             {tasks.map((task) => (
                 <div
                     key={task.id}
-                    className="p-5 rounded-2xl shadow bg-gray-900 hover:shadow-2xl transition border border-gray-800 flex flex-col gap-2"
+                    className="p-5 rounded-2xl shadow-sm bg-[rgb(var(--color-bg-alt))] hover:shadow-md transition border border-[rgb(var(--color-border))] flex flex-col gap-2"
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             {getPriorityIcon(task.priority)}
-                            <span className="text-lg font-bold text-gray-100">
+                            <span className="text-lg font-bold text-[rgb(var(--color-fg))]">
                                 {task.title || <span className="text-gray-500">Untitled</span>}
                             </span>
                         </div>
                         <button
-                            className="ml-2 px-2 py-1 text-xs rounded bg-gray-800 text-gray-400 hover:text-gray-100 border border-gray-700 flex items-center gap-1"
+                            className="ml-2 px-2 py-1 text-xs rounded bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg-muted))] hover:text-[rgb(var(--color-fg))] border border-[rgb(var(--color-border))] flex items-center gap-1"
                             title="Copy title"
                             onClick={() => handleCopy(task.title || '', task.id + '-title')}
                         >
@@ -62,7 +62,7 @@ export default function TaskList({ tasks }: { tasks: Task[] }) {
                         <div className="relative mt-1">
                             <div className="flex items-center justify-between">
                                 <button
-                                    className="px-2 py-1 text-xs rounded bg-gray-800 text-gray-400 hover:text-gray-100 border border-gray-700 flex items-center gap-1"
+                                    className="px-2 py-1 text-xs rounded bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg-muted))] hover:text-[rgb(var(--color-fg))] border border-[rgb(var(--color-border))] flex items-center gap-1"
                                     title={expanded[task.id] ? 'Collapse' : 'Expand'}
                                     onClick={() => handleToggle(task.id)}
                                 >
@@ -70,25 +70,25 @@ export default function TaskList({ tasks }: { tasks: Task[] }) {
                                     {expanded[task.id] ? 'Collapse' : 'Expand'}
                                 </button>
                                 <button
-                                    className="px-2 py-1 text-xs rounded bg-gray-800 text-gray-400 hover:text-gray-100 border border-gray-700 flex items-center gap-1"
+                                    className="px-2 py-1 text-xs rounded bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg-muted))] hover:text-[rgb(var(--color-fg))] border border-[rgb(var(--color-border))] flex items-center gap-1"
                                     title="Copy description"
                                     onClick={() => handleCopy(task.description || '', task.id + '-desc')}
                                 >
                                     {copiedId === task.id + '-desc' ? <ClipboardCheck className="w-4 h-4" /> : <ClipboardCopy className="w-4 h-4" />}
                                 </button>
                             </div>
-                            <p className={`text-sm text-gray-300 mt-1 transition-all duration-200 ${expanded[task.id] ? '' : 'line-clamp-2'}`}>{task.description}</p>
+                            <p className={`text-sm text-[rgb(var(--color-fg))]/80 mt-1 transition-all duration-200 ${expanded[task.id] ? '' : 'line-clamp-2'}`}>{task.description}</p>
                         </div>
                     ) : (
-                        <p className="text-sm text-gray-500 mt-1">No description</p>
+                        <p className="text-sm text-[rgb(var(--color-fg-muted))] mt-1">No description</p>
                     )}
                     {task.priority && (
                         <span
                             className={`inline-flex items-center gap-1 mt-2 px-2 py-1 text-xs rounded border font-semibold tracking-wide select-none
-                                ${task.priority.toLowerCase() === 'high' ? 'bg-red-900 text-red-300 border-red-700' : ''}
-                                ${task.priority.toLowerCase() === 'medium' ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : ''}
-                                ${task.priority.toLowerCase() === 'low' ? 'bg-green-900 text-green-200 border-green-700' : ''}
-                                ${!['high', 'medium', 'low'].includes(task.priority.toLowerCase()) ? 'bg-gray-800 text-gray-300 border-gray-700' : ''}
+                                ${task.priority.toLowerCase() === 'high' ? 'bg-[rgb(var(--color-danger-bg))] text-[rgb(var(--color-danger))] border-[rgb(var(--color-danger))]/40' : ''}
+                                ${task.priority.toLowerCase() === 'medium' ? 'bg-[rgb(var(--color-warn-bg))] text-[rgb(var(--color-warn))] border-[rgb(var(--color-warn))]/40' : ''}
+                                ${task.priority.toLowerCase() === 'low' ? 'bg-[rgb(var(--color-success-bg))] text-[rgb(var(--color-success))] border-[rgb(var(--color-success))]/40' : ''}
+                                ${!['high', 'medium', 'low'].includes(task.priority.toLowerCase()) ? 'bg-[rgb(var(--color-bg-accent))] text-[rgb(var(--color-fg))] border-[rgb(var(--color-border))]' : ''}
                             `}
                         >
                             {getPriorityIcon(task.priority)}

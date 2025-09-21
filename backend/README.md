@@ -1,6 +1,6 @@
 # Backend (AI Log Explainer)
 
-FastAPI service that accepts raw application or system logs and uses an LLM (OpenAI ChatCompletion) to produce a structured explanation.
+FastAPI service that accepts raw application or system logs and uses an LLM (via OpenRouter with DeepSeek R1) to produce a structured explanation.
 
 ## Features
 - `/health` endpoint for liveness
@@ -11,9 +11,9 @@ FastAPI service that accepts raw application or system logs and uses an LLM (Ope
 ## Requirements
 Set environment variables (or use `.env` file):
 ```
-OPENAI_API_KEY=sk-...
+OPENROUTER_API_KEY=sk-or-v1-...
 FRONTEND_URL=http://localhost:3000
-DEFAULT_MODEL=gpt-3.5-turbo  # optional override
+DEFAULT_MODEL=deepseek/deepseek-r1:free  # optional override
 MAX_TOKENS=1200              # optional override
 TEMPERATURE=0.0              # optional override
 ```
@@ -55,6 +55,6 @@ backend/
 ```
 
 ## Notes
-- Currently pinned to OpenAI Python SDK <1.0.0 for stability; upgrade path would involve migrating to the new client API.
+- Uses the OpenAI SDK configured with OpenRouter base URL to reach DeepSeek R1 (`deepseek/deepseek-r1:free`).
 - `extract_json_from_text` performs a simple balanced-brace scan; for more complex outputs consider a streaming parser or a JSON schema constrained model.
 - Ensure you never commit a real API key. Replace placeholders in deployment via environment.
