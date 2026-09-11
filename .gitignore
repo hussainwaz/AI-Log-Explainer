@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secrets
+.env
+*.local
+
+# Node
+node_modules/
+.next/
+out/
+.DS_Store

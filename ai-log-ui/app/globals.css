@@ -1,181 +1,188 @@
-/* Tailwind (v4 style single entry). Keep first for proper layer ordering. */
 @import "tailwindcss";
 
-/* ===================================================================
-   THEME TOKENS
-   -------------------------------------------------------------------
-   Strategy:
-   1. Light theme in :root (default)
-   2. Dark theme override via [data-theme="dark"] attribute (manual toggle)
-   3. Fallback to system preference with @media (if no explicit data-theme)
-   4. Colors stored as space‑separated RGB so we can use the same values in
-      rgb(var(--token) / <alpha-value>) inside utility classes if needed.
-   5. Provide high-contrast semantic role variants (e.g. --color-danger-fg)
-   =================================================================== */
+/* ─────────────────────────────────────────────────────────────────────────
+   Colour is authored in OKLCH so the ramps step evenly in perceived
+   lightness. Cream ground, violet-cast ink, one violet signal. Severity is
+   the only place other hues appear, because there the hue carries meaning.
+   ───────────────────────────────────────────────────────────────────────── */
+
 :root {
-  /* Typography */
-  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --paper: oklch(0.958 0.017 90);
+  --paper-deep: oklch(0.924 0.022 88);
+  --paper-sunk: oklch(0.895 0.024 86);
 
-  /* Base (Light) */
-  --color-bg: 246 248 252;
-  /* #f6f8fc */
-  --color-bg-alt: 255 255 255;
-  /* #ffffff */
-  --color-bg-accent: 239 244 255;
-  /* subtle blue */
-  --color-fg: 23 28 38;
-  /* near black */
-  --color-fg-muted: 92 102 122;
-  /* muted text */
-  --color-border: 209 215 226;
-  /* light border */
-  --color-border-strong: 172 182 198;
+  --ink: oklch(0.29 0.062 300);
+  --ink-2: oklch(0.44 0.055 300);
+  --ink-3: oklch(0.545 0.045 300);
 
-  /* Primary */
-  --color-primary: 37 99 235;
-  /* blue-600 */
-  --color-primary-hover: 29 78 216;
-  /* blue-700 */
-  --color-primary-soft: 219 234 254;
-  /* blue-100 */
+  --violet: oklch(0.45 0.28 288);
+  --violet-bright: oklch(0.63 0.24 288);
 
-  /* Semantic */
-  --color-danger: 220 38 38;
-  /* red-600 */
-  --color-danger-bg: 254 226 226;
-  /* red-100 */
-  --color-danger-fg: 120 28 28;
-  /* darker text for contrast */
-  --color-warn: 202 138 4;
-  /* amber-600 */
-  --color-warn-bg: 254 243 199;
-  /* amber-100 */
-  --color-warn-fg: 113 63 18;
-  --color-success: 22 163 74;
-  /* green-600 */
-  --color-success-bg: 220 252 231;
-  /* green-100 */
-  --color-success-fg: 5 46 22;
+  --night: oklch(0.21 0.022 292);
+  --night-2: oklch(0.26 0.026 292);
+  --on-night: oklch(0.958 0.017 90);
+  --on-night-2: oklch(0.72 0.03 292);
 
-  /* Elevated Surfaces */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 18px -5px rgba(0, 0, 0, 0.15), 0 4px 8px -3px rgba(0, 0, 0, 0.06);
+  --line: oklch(0.29 0.062 300 / 0.14);
+  --line-strong: oklch(0.29 0.062 300 / 0.30);
 
-  /* Radii */
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 14px;
-  --radius-full: 9999px;
-
-  /* Motion */
-  --ease: cubic-bezier(.4, .0, .2, 1);
-  --transition: 140ms var(--ease);
-
-  /* Misc */
-  accent-color: rgb(var(--color-primary));
-  color-scheme: light;
-  /* Hint UA for form controls */
+  --sev-low: oklch(0.55 0.13 220);
+  --sev-medium: oklch(0.62 0.15 75);
+  --sev-high: oklch(0.58 0.20 40);
+  --sev-critical: oklch(0.52 0.22 25);
+  --ok: oklch(0.52 0.16 150);
 }
 
-/* Manual dark mode toggle (preferred). Apply e.g. on <html data-theme="dark"> */
-:root[data-theme="dark"],
-[data-theme="dark"] :root {
-  /* defensive */
-  --color-bg: 15 17 23;
-  --color-bg-alt: 28 32 42;
-  --color-bg-accent: 32 41 59;
-  --color-fg: 237 242 248;
-  --color-fg-muted: 150 163 186;
-  --color-border: 58 70 88;
-  --color-border-strong: 92 105 126;
+html[data-theme="dark"] {
+  --paper: oklch(0.19 0.021 292);
+  --paper-deep: oklch(0.235 0.024 292);
+  --paper-sunk: oklch(0.165 0.020 292);
 
-  --color-primary: 96 165 250;
-  /* blue-400 */
-  --color-primary-hover: 59 130 246;
-  /* blue-500 */
-  --color-primary-soft: 30 58 95;
-  /* deep blue */
+  --ink: oklch(0.958 0.017 90);
+  --ink-2: oklch(0.80 0.025 292);
+  --ink-3: oklch(0.66 0.03 292);
 
-  --color-danger: 248 113 113;
-  /* red-400 */
-  --color-danger-bg: 69 26 26;
-  /* red-900 */
-  --color-danger-fg: 254 202 202;
-  /* red-200 */
-  --color-warn: 251 191 36;
-  /* amber-400 */
-  --color-warn-bg: 69 39 10;
-  /* amber-900 */
-  --color-warn-fg: 254 228 161;
-  /* amber-200 */
-  --color-success: 74 222 128;
-  /* green-400 */
-  --color-success-bg: 20 56 30;
-  /* green-900 */
-  --color-success-fg: 187 247 208;
-  /* green-200 */
+  --violet: oklch(0.72 0.20 288);
+  --violet-bright: oklch(0.80 0.17 288);
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 10px 18px -5px rgba(0, 0, 0, 0.45), 0 4px 8px -3px rgba(0, 0, 0, 0.35);
+  --night: oklch(0.145 0.018 292);
+  --night-2: oklch(0.20 0.022 292);
 
+  --line: oklch(0.958 0.017 90 / 0.12);
+  --line-strong: oklch(0.958 0.017 90 / 0.26);
+
+  --sev-low: oklch(0.70 0.13 220);
+  --sev-medium: oklch(0.78 0.15 75);
+  --sev-high: oklch(0.72 0.18 40);
+  --sev-critical: oklch(0.68 0.20 25);
+  --ok: oklch(0.72 0.16 150);
   color-scheme: dark;
 }
 
-/* Fallback to system preference if no explicit data-theme */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --color-bg: 15 17 23;
-    --color-bg-alt: 28 32 42;
-    --color-bg-accent: 32 41 59;
-    --color-fg: 237 242 248;
-    --color-fg-muted: 150 163 186;
-    --color-border: 58 70 88;
-    --color-border-strong: 92 105 126;
-
-    --color-primary: 96 165 250;
-    --color-primary-hover: 59 130 246;
-    --color-primary-soft: 30 58 95;
-
-    --color-danger: 248 113 113;
-    --color-danger-bg: 69 26 26;
-    --color-danger-fg: 254 202 202;
-    --color-warn: 251 191 36;
-    --color-warn-bg: 69 39 10;
-    --color-warn-fg: 254 228 161;
-    --color-success: 74 222 128;
-    --color-success-bg: 20 56 30;
-    --color-success-fg: 187 247 208;
-
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
-    --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
-    --shadow-lg: 0 10px 18px -5px rgba(0, 0, 0, 0.45), 0 4px 8px -3px rgba(0, 0, 0, 0.35);
-
-    color-scheme: dark;
-  }
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-paper-sunk: var(--paper-sunk);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-violet: var(--violet);
+  --color-violet-bright: var(--violet-bright);
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-on-night: var(--on-night);
+  --color-on-night-2: var(--on-night-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* ===================================================================
-   BASE STYLES
-   =================================================================== */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+
+html { background: var(--paper); }
 
 body {
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  line-height: 1.5;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove list markers from summary elements */
-details summary {
-  list-style: none;
+::selection { background: var(--violet); color: var(--paper); }
+
+:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 3px;
+  border-radius: 8px;
 }
-details summary::-webkit-details-marker {
-  display: none;
+
+/* ─── Voices ──────────────────────────────────────────────────────────── */
+
+.tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.display {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.03;
+}
+
+.mono {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-variant-ligatures: none;
+}
+
+/* Everything interactive is a pill, and hover flips polarity rather than
+   fading, so a hover state is never ambiguous. */
+.pill {
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background-color 170ms ease, color 170ms ease, border-color 170ms ease,
+    transform 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pill:active:not(:disabled) { transform: translateY(1px); }
+
+.pill-solid { background: var(--violet); color: var(--paper); border: 1px solid transparent; }
+.pill-solid:hover:not(:disabled) { background: var(--ink); }
+.pill-solid:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.pill-ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line-strong); }
+.pill-ghost:hover:not(:disabled) { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.pill-quiet { background: var(--paper-deep); color: var(--ink-2); border: 1px solid transparent; }
+.pill-quiet:hover:not(:disabled) { background: var(--violet); color: var(--paper); }
+
+.card {
+  background: var(--paper-deep);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.sheet-night { background: var(--night); color: var(--on-night); border-radius: 18px; }
+
+/* The log field is a lit screen, not a form input. */
+.logfield {
+  background: transparent;
+  color: var(--on-night);
+  caret-color: var(--violet-bright);
+  resize: none;
+  outline: none;
+}
+.logfield::placeholder { color: oklch(0.958 0.017 90 / 0.30); }
+
+.scroll-slim::-webkit-scrollbar { width: 9px; height: 9px; }
+.scroll-slim::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
+.scroll-slim::-webkit-scrollbar-track { background: transparent; }
+
+/* A caret that trails streamed text while the model is still writing. */
+@keyframes caretblink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  background: var(--violet);
+  animation: caretblink 1.05s steps(1, end) infinite;
+}
+
+details summary { list-style: none; cursor: pointer; }
+details summary::-webkit-details-marker { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
