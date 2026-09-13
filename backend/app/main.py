@@ -52,6 +52,23 @@ def _usage_from(raw_usage: Any, model: str) -> Optional[Usage]:
     )
 
 
+def _first_message(completion: Any) -> str:
+    """The assistant's text, or a clear error if the provider sent none.
+
+    A free or overloaded provider can return a 200 whose `choices` is null.
+    Indexing that raises "NoneType object is not subscriptable", which tells
+    nobody anything; the provider's own error field usually says why.
+    """
+    choices = getattr(completion, "choices", None)
+    if not choices:
+        detail = getattr(completion, "error", None)
+        raise RuntimeError(
+            f"provider returned no choices: {detail}" if detail
+            else "provider returned no choices (it may be rate limited)"
+        )
+    return (choices[0].message.content or "").strip()
+
+
 def _resolve(req: LogRequest) -> str:
     if not req.raw_log or not req.raw_log.strip():
         raise HTTPException(status_code=400, detail="raw_log cannot be empty")
@@ -88,7 +105,7 @@ async def explain_log(req: LogRequest) -> ExplainerResponse:
             temperature=config.TEMPERATURE,
             extra_headers=_EXTRA_HEADERS,
         )
-        text = (completion.choices[0].message.content or "").strip()
+        text = _first_message(completion)
         usage = _usage_from(getattr(completion, "usage", None), model)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"API request error: {e}") from e
@@ -132,10 +149,12 @@ async def explain_log_stream(req: LogRequest) -> StreamingResponse:
                 chunk_usage = getattr(chunk, "usage", None)
                 if chunk_usage is not None:
                     usage = _usage_from(chunk_usage, model)
-                try:
-                    content = getattr(chunk.choices[0].delta, "content", None) or ""
-                except (IndexError, AttributeError):
-                    content = ""
+                # A chunk can legitimately carry no choices: the usage-only
+                # final frame is one, and an overloaded provider sends null.
+                choices = getattr(chunk, "choices", None)
+                content = ""
+                if choices:
+                    content = getattr(choices[0].delta, "content", None) or ""
                 if content:
                     full_text += content
                     yield _sse_event("chunk", {"content": content}).encode("utf-8")

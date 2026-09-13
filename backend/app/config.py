@@ -25,8 +25,12 @@ def _require(name: str) -> str:
 OPENROUTER_API_KEY: str = _require("OPENROUTER_API_KEY")
 FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-# Free by default, so a clone with a fresh key and no credit still works.
-DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "deepseek/deepseek-r1:free")
+# Mistral Nemo, not a free model. The three `:free` slugs this project used to
+# default to were all withdrawn from OpenRouter, and a dead default means a
+# fresh clone 404s on its first request. Nemo is about $0.00003 a run, so a
+# thousand analyses cost roughly seven cents, and it does not get rate limited
+# out from under you the way the free tier does.
+DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "mistralai/mistral-nemo")
 
 # Reasoning models spend part of this budget thinking before they emit a token
 # of answer, and that spend counts here. At the old 1200 a reasoning model
@@ -42,8 +46,8 @@ OPENROUTER_SITE_NAME: str = os.getenv("OPENROUTER_SITE_NAME", "AI Log Explainer"
 # nothing else: without an allowlist the endpoint is an open proxy to any
 # model on the key's credit. `tier` is what the UI badges each option with.
 MODEL_CHOICES: List[Dict[str, str]] = [
-    {"id": "deepseek/deepseek-r1:free",              "label": "DeepSeek R1",        "tier": "free"},
-    {"id": "meta-llama/llama-3.3-70b-instruct:free", "label": "Llama 3.3 70B",      "tier": "free"},
+    {"id": "nvidia/nemotron-3-super-120b-a12b:free", "label": "Nemotron 3 Super",  "tier": "free"},
+    {"id": "nvidia/nemotron-3.5-lightning:free",     "label": "Nemotron Lightning", "tier": "free"},
     {"id": "mistralai/mistral-nemo",                 "label": "Mistral Nemo",       "tier": "cheap"},
     {"id": "qwen/qwen3-30b-a3b-instruct-2507",       "label": "Qwen3 30B",          "tier": "cheap"},
     {"id": "google/gemini-2.5-flash-lite",           "label": "Gemini 2.5 Flash Lite", "tier": "cheap"},

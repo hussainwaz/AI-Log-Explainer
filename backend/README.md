@@ -13,7 +13,7 @@ Set environment variables (or use `.env` file):
 ```
 OPENROUTER_API_KEY=sk-or-v1-...
 FRONTEND_URL=http://localhost:3000
-DEFAULT_MODEL=deepseek/deepseek-r1:free  # optional override
+DEFAULT_MODEL=mistralai/mistral-nemo  # optional override
 MAX_TOKENS=1200              # optional override
 TEMPERATURE=0.0              # optional override
 ```
@@ -55,6 +55,6 @@ backend/
 ```
 
 ## Notes
-- Uses the OpenAI SDK configured with OpenRouter base URL to reach DeepSeek R1 (`deepseek/deepseek-r1:free`).
+- Uses the OpenAI SDK pointed at OpenRouter. The model is chosen per request from `config.MODEL_CHOICES`.
 - `extract_json_from_text` performs a simple balanced-brace scan; for more complex outputs consider a streaming parser or a JSON schema constrained model.
 - Ensure you never commit a real API key. Replace placeholders in deployment via environment.

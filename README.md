@@ -27,8 +27,13 @@ log is sent anywhere.
 
 ## Running it
 
-You need an [OpenRouter](https://openrouter.ai/keys) API key. The default model
-is `deepseek/deepseek-r1:free`.
+You need an [OpenRouter](https://openrouter.ai/keys) API key with a little
+credit on it. The default model is `mistralai/mistral-nemo`, which costs about
+$0.00003 per analysis, so a thousand of them runs to roughly seven cents.
+
+The picker does list two free models, but they are a courtesy rather than the
+default: OpenRouter withdrew the three `:free` slugs this project originally
+shipped with, and free slugs also rate limit under load.
 
 ```bash
 cp backend/.env.example backend/.env   # then paste your key into it
@@ -84,7 +89,7 @@ Everything lives in `backend/.env`; see `backend/.env.example`.
 | Variable | Default | |
 |---|---|---|
 | `OPENROUTER_API_KEY` | — | required |
-| `DEFAULT_MODEL` | `deepseek/deepseek-r1:free` | the model the picker opens on |
+| `DEFAULT_MODEL` | `mistralai/mistral-nemo` | the model the picker opens on |
 | `MAX_TOKENS` | `4000` | reasoning models spend part of this thinking |
 | `TEMPERATURE` | `0.0` | deterministic by default, since this is diagnosis |
 | `FRONTEND_URL` | `http://localhost:3000` | for CORS |
