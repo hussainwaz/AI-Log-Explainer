@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   Braces,
+  Coins,
+  Cpu,
   Check,
   ClipboardList,
   Copy,
@@ -42,7 +44,18 @@ type ParsedResult = {
   tasks?: Task[];
 };
 
-type ApiResult = { raw_llm?: string; parsed?: ParsedResult };
+type Usage = {
+  model: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  reasoning_tokens?: number;
+  total_tokens?: number;
+  cost?: number;
+};
+
+type ApiResult = { raw_llm?: string; parsed?: ParsedResult; usage?: Usage };
+
+type ModelChoice = { id: string; label: string; tier: "free" | "cheap" | "mid" | "strong" };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -66,6 +79,32 @@ STATEMENT: SELECT * FROM users WHERE id = 42;`,
 ];
 
 const STEPS = ["Reading the log", "Finding the pattern", "Asking the model", "Writing it up"];
+
+/** OpenRouter bills in fractions of a cent, so a plain toFixed(2) reads $0.00
+ *  for every run. Show enough places that the number means something. */
+function formatCost(cost?: number) {
+  if (cost == null) return "n/a";
+  if (cost === 0) return "free";
+  if (cost < 0.01) return `$${cost.toFixed(5)}`;
+  return `$${cost.toFixed(3)}`;
+}
+
+function usageTitle(u: Usage) {
+  const bits = [u.model];
+  if (u.prompt_tokens != null) bits.push(`${u.prompt_tokens} in`);
+  if (u.completion_tokens != null) bits.push(`${u.completion_tokens} out`);
+  // Reasoning tokens are billed at the completion rate but never shown in the
+  // answer, which is the single biggest surprise on a reasoning model's bill.
+  if (u.reasoning_tokens) bits.push(`${u.reasoning_tokens} reasoning`);
+  return bits.join(" · ");
+}
+
+const TIER_LABEL: Record<string, string> = {
+  free: "Free",
+  cheap: "Cheap",
+  mid: "Mid",
+  strong: "Strong",
+};
 
 /** Severity is the one place a hue is allowed to mean something. */
 const SEVERITY: Record<string, { label: string; token: string }> = {
@@ -164,6 +203,27 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"pretty" | "raw">("pretty");
   const [redactSecrets, setRedactSecrets] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [models, setModels] = useState<ModelChoice[]>([]);
+  const [model, setModel] = useState<string>("");
+
+  /* The picker is server-driven: the backend owns the allowlist, so the UI
+     cannot ask for a model the key is not meant to be billed for. */
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/models`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive || !d) return;
+        setModels(d.models ?? []);
+        setModel(d.default ?? d.models?.[0]?.id ?? "");
+      })
+      .catch(() => {
+        /* backend down; analyse() surfaces that properly on first use */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const logRef = useRef<HTMLTextAreaElement>(null);
   const lineCount = log ? log.split(/\r?\n/).length : 0;
@@ -225,6 +285,7 @@ export default function Home() {
     const body = JSON.stringify({
       raw_log: redactSecrets ? maskSecrets(log) : log,
       context: redactSecrets ? maskSecrets(context) : context,
+      model: model || undefined,
     });
 
     try {
@@ -297,7 +358,7 @@ export default function Home() {
       setLoading(false);
       setStreaming(false);
     }
-  }, [log, context, loading, redactSecrets]);
+  }, [log, context, loading, redactSecrets, model]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -448,6 +509,33 @@ export default function Home() {
               className="mt-3 w-full rounded-2xl border border-[var(--line-strong)] bg-transparent px-4 py-3 text-[14px] text-ink placeholder:text-ink-3 focus:outline-none focus-visible:outline-2"
             />
 
+            {models.length > 0 && (
+              <label className="mt-3 flex items-center gap-3 rounded-2xl border border-[var(--line-strong)] px-4 py-2.5">
+                <span className="tag flex shrink-0 items-center gap-1.5 text-ink-3">
+                  <Cpu size={12} /> Model
+                </span>
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className="min-w-0 flex-1 cursor-pointer appearance-none bg-transparent text-right text-[13px] font-medium text-ink focus:outline-none"
+                >
+                  {(["free", "cheap", "mid", "strong"] as const).map((tier) => {
+                    const group = models.filter((m) => m.tier === tier);
+                    if (!group.length) return null;
+                    return (
+                      <optgroup key={tier} label={TIER_LABEL[tier]}>
+                        {group.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+              </label>
+            )}
+
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <button onClick={analyze} disabled={!log.trim() || loading} className="pill pill-solid flex items-center gap-2 px-6 py-3">
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
@@ -594,6 +682,16 @@ export default function Home() {
                             </span>
                             <span className="mono text-[12px] text-ink-2">{parsed.confidence_score}%</span>
                           </div>
+                        </div>
+                      )}
+                      {result?.usage && (
+                        <div>
+                          <p className="tag flex items-center gap-1.5 text-ink-3">
+                            <Coins size={11} /> Cost
+                          </p>
+                          <p className="mono mt-1 text-[13px]" title={usageTitle(result.usage)}>
+                            {formatCost(result.usage.cost)}
+                          </p>
                         </div>
                       )}
                     </div>

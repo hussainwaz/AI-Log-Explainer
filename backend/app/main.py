@@ -1,29 +1,64 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.schemas import LogRequest, ExplainerResponse
+from app.schemas import LogRequest, ExplainerResponse, Usage
 from app.prompts import EXPLAINER_SYSTEM_PROMPT, build_log_prompt
 from app.utils import extract_json_from_text
 from app import config
 from openai import OpenAI
-from typing import Any, Dict, AsyncGenerator
+from typing import Any, Dict, AsyncGenerator, Optional
 import json
 
 app = FastAPI(title="AI Log Explainer")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[config.FRONTEND_URL, "http://localhost:3000", "*"],
+    allow_origins=[config.FRONTEND_URL, "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize OpenAI client with OpenRouter configuration
 client = OpenAI(
     api_key=config.OPENROUTER_API_KEY,
     base_url="https://openrouter.ai/api/v1",
 )
+
+_EXTRA_HEADERS = {
+    "HTTP-Referer": config.OPENROUTER_SITE_URL,
+    "X-Title": config.OPENROUTER_SITE_NAME,
+}
+
+
+def _usage_from(raw_usage: Any, model: str) -> Optional[Usage]:
+    """Pull OpenRouter's usage block into our own shape.
+
+    OpenRouter attaches this to every response without being asked, so the
+    cost here is what was actually charged, not a price-table estimate.
+    """
+    if raw_usage is None:
+        return Usage(model=model)
+    get = raw_usage.get if isinstance(raw_usage, dict) else lambda k, d=None: getattr(raw_usage, k, d)
+    details = get("completion_tokens_details") or {}
+    if not isinstance(details, dict):
+        details = getattr(details, "__dict__", {}) or {}
+    return Usage(
+        model=model,
+        prompt_tokens=get("prompt_tokens"),
+        completion_tokens=get("completion_tokens"),
+        reasoning_tokens=details.get("reasoning_tokens"),
+        total_tokens=get("total_tokens"),
+        cost=get("cost"),
+    )
+
+
+def _resolve(req: LogRequest) -> str:
+    if not req.raw_log or not req.raw_log.strip():
+        raise HTTPException(status_code=400, detail="raw_log cannot be empty")
+    try:
+        return config.resolve_model(req.model)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @app.get("/health")
@@ -31,102 +66,92 @@ async def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/models")
+async def models() -> Dict[str, Any]:
+    """The models the UI may choose between, and which one is the default."""
+    return {"models": config.MODEL_CHOICES, "default": config.DEFAULT_MODEL}
+
+
 @app.post("/explain", response_model=ExplainerResponse)
 async def explain_log(req: LogRequest) -> ExplainerResponse:
-    """Explain a raw log snippet using an LLM and return parsed JSON if possible."""
-    print("Incoming request:", req)
-    if not req.raw_log or not req.raw_log.strip():
-        raise HTTPException(status_code=400, detail="raw_log cannot be empty")
-
-    system_prompt = EXPLAINER_SYSTEM_PROMPT
-    user_prompt = build_log_prompt(req.raw_log, req.context)
+    """Explain a raw log snippet, returning parsed JSON where recoverable."""
+    model = _resolve(req)
 
     try:
         completion = client.chat.completions.create(
-            model=config.DEFAULT_MODEL,
+            model=model,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "system", "content": EXPLAINER_SYSTEM_PROMPT},
+                {"role": "user", "content": build_log_prompt(req.raw_log, req.context)},
             ],
             max_tokens=config.MAX_TOKENS,
             temperature=config.TEMPERATURE,
-            extra_headers={
-                "HTTP-Referer": config.OPENROUTER_SITE_URL,
-                "X-Title": config.OPENROUTER_SITE_NAME,
-            }
+            extra_headers=_EXTRA_HEADERS,
         )
-        
-        text = completion.choices[0].message.content.strip()
-        
+        text = (completion.choices[0].message.content or "").strip()
+        usage = _usage_from(getattr(completion, "usage", None), model)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"API request error: {e}") from e
+        raise HTTPException(status_code=502, detail=f"API request error: {e}") from e
 
-    parsed = extract_json_from_text(text)
-    return ExplainerResponse(raw_llm=text, parsed=parsed)
+    return ExplainerResponse(raw_llm=text, parsed=extract_json_from_text(text), usage=usage)
 
 
 def _sse_event(event: str, data: Dict[str, Any]) -> str:
-    """Format a server-sent event line."""
     return f"event: {event}\n" + f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 @app.post("/explain/stream")
 async def explain_log_stream(req: LogRequest) -> StreamingResponse:
-    """Stream LLM response as SSE events (chunk + final)."""
-    if not req.raw_log or not req.raw_log.strip():
-        raise HTTPException(status_code=400, detail="raw_log cannot be empty")
-
-    system_prompt = EXPLAINER_SYSTEM_PROMPT
-    user_prompt = build_log_prompt(req.raw_log, req.context)
+    """Stream the answer as SSE: status, chunk, then a final payload."""
+    model = _resolve(req)
 
     async def event_generator() -> AsyncGenerator[bytes, None]:
         full_text = ""
-        # initial status
+        usage: Optional[Usage] = None
         yield _sse_event("status", {"step": 1, "message": "Starting analysis"}).encode("utf-8")
         try:
             completion = client.chat.completions.create(
-                model=config.DEFAULT_MODEL,
+                model=model,
                 messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
+                    {"role": "system", "content": EXPLAINER_SYSTEM_PROMPT},
+                    {"role": "user", "content": build_log_prompt(req.raw_log, req.context)},
                 ],
                 max_tokens=config.MAX_TOKENS,
                 temperature=config.TEMPERATURE,
                 stream=True,
-                extra_headers={
-                    "HTTP-Referer": config.OPENROUTER_SITE_URL,
-                    "X-Title": config.OPENROUTER_SITE_NAME,
-                }
+                # Without this, a streamed response carries no usage block and
+                # the cost line would be empty for every streamed run.
+                stream_options={"include_usage": True},
+                extra_headers=_EXTRA_HEADERS,
             )
 
-            # Notify generating step
             yield _sse_event("status", {"step": 2, "message": "Generating explanation"}).encode("utf-8")
 
             for chunk in completion:
+                # The usage block rides on the last message, which has no choices.
+                chunk_usage = getattr(chunk, "usage", None)
+                if chunk_usage is not None:
+                    usage = _usage_from(chunk_usage, model)
                 try:
-                    delta = chunk.choices[0].delta
-                    content = getattr(delta, "content", None) or ""
-                except Exception:
+                    content = getattr(chunk.choices[0].delta, "content", None) or ""
+                except (IndexError, AttributeError):
                     content = ""
                 if content:
                     full_text += content
                     yield _sse_event("chunk", {"content": content}).encode("utf-8")
 
-            # Parsing step
             yield _sse_event("status", {"step": 3, "message": "Parsing structured output"}).encode("utf-8")
-            parsed = extract_json_from_text(full_text)
 
-            # Final payload
-            final_payload = {"raw_llm": full_text, "parsed": parsed}
-            yield _sse_event("final", final_payload).encode("utf-8")
+            yield _sse_event("final", {
+                "raw_llm": full_text,
+                "parsed": extract_json_from_text(full_text),
+                "usage": usage.model_dump() if usage else None,
+            }).encode("utf-8")
         except Exception as e:
-            # Emit error event
             yield _sse_event("error", {"message": f"API request error: {e}"}).encode("utf-8")
 
-    headers = {
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "X-Accel-Buffering": "no",
-    }
-    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=headers)
-
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )

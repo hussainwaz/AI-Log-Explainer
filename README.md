@@ -21,6 +21,9 @@ log is sent anywhere.
   strings and email addresses are masked client-side. On by default.
 - **Exports.** Download the analysis as JSON or as a Markdown report.
 - **Drag a log file in**, or start from one of three built-in samples.
+- **Pick the model, see the bill.** Twelve models from free to frontier, and
+  each answer shows what it actually cost, including the reasoning tokens you
+  paid for but never saw.
 
 ## Running it
 
@@ -54,8 +57,21 @@ Swagger is at `http://127.0.0.1:8000/docs`.
 | Route | Method | Body | Returns |
 |---|---|---|---|
 | `/health` | GET | | `{ status: "ok" }` |
-| `/explain` | POST | `{ raw_log, context? }` | `{ raw_llm, parsed }` |
-| `/explain/stream` | POST | `{ raw_log, context? }` | SSE: `status`, `chunk`, `final`, `error` |
+| `/models` | GET | | `{ models, default }` |
+| `/explain` | POST | `{ raw_log, context?, model? }` | `{ raw_llm, parsed, usage }` |
+| `/explain/stream` | POST | `{ raw_log, context?, model? }` | SSE: `status`, `chunk`, `final`, `error` |
+
+`model` must be one of the ids from `/models`. The allowlist lives in
+`config.MODEL_CHOICES`: without it the endpoint would be an open proxy to any
+model on the key's credit.
+
+`usage` carries OpenRouter's own accounting, so `cost` is the charge rather
+than an estimate from a price table:
+
+```json
+{ "model": "openai/gpt-4o-mini", "prompt_tokens": 312, "completion_tokens": 688,
+  "reasoning_tokens": null, "total_tokens": 1000, "cost": 0.00046 }
+```
 
 `parsed` is the model's JSON when it can be recovered from the response, and
 `null` when it cannot. The UI renders `parsed` when present and falls back to
@@ -68,8 +84,8 @@ Everything lives in `backend/.env`; see `backend/.env.example`.
 | Variable | Default | |
 |---|---|---|
 | `OPENROUTER_API_KEY` | — | required |
-| `DEFAULT_MODEL` | `deepseek/deepseek-r1:free` | any OpenRouter model id |
-| `MAX_TOKENS` | `1200` | |
+| `DEFAULT_MODEL` | `deepseek/deepseek-r1:free` | the model the picker opens on |
+| `MAX_TOKENS` | `4000` | reasoning models spend part of this thinking |
 | `TEMPERATURE` | `0.0` | deterministic by default, since this is diagnosis |
 | `FRONTEND_URL` | `http://localhost:3000` | for CORS |
 
