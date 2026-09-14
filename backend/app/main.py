@@ -11,9 +11,13 @@ import json
 
 app = FastAPI(title="AI Log Explainer")
 
+# FRONTEND_URL plus localhost on any port. A fixed pair of ports meant a dev
+# server started anywhere else had every request blocked by CORS, and the UI
+# could only report that the backend was unreachable.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[config.FRONTEND_URL, "http://localhost:3000"],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

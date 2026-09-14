@@ -167,6 +167,67 @@ function Section({
   );
 }
 
+/* ── shape drift ────────────────────────────────────────────────────────
+   The prompt asks for arrays of strings, and most models oblige. Some do
+   not: one returns probable_fixes as [{rank, fix}], another wraps steps as
+   [{step: "..."}]. Rendering that raised "Objects are not valid as a React
+   child" and took the whole page down, and the Markdown export wrote
+   "[object Object]". Since the point of this tool is to run the same log
+   past different models, the answer is to accept the drift rather than
+   trust the contract. */
+
+const TEXT_KEYS = ["fix", "step", "test", "text", "description", "title", "value", "name", "action"];
+
+function asText(item: unknown): string {
+  if (item == null) return "";
+  if (typeof item === "string") return item;
+  if (typeof item === "number" || typeof item === "boolean") return String(item);
+  if (Array.isArray(item)) return item.map(asText).filter(Boolean).join(" ");
+  if (typeof item === "object") {
+    const obj = item as Record<string, unknown>;
+    for (const k of TEXT_KEYS) {
+      if (typeof obj[k] === "string" && obj[k]) return obj[k] as string;
+    }
+    // Nothing recognisable: show the first string value rather than nothing.
+    const first = Object.values(obj).find((v) => typeof v === "string" && v);
+    return (first as string) ?? JSON.stringify(item);
+  }
+  return String(item);
+}
+
+function asList(value: unknown): string[] {
+  if (!value) return [];
+  const arr = Array.isArray(value) ? value : [value];
+  return arr.map(asText).filter(Boolean);
+}
+
+function normalise(raw: unknown): ParsedResult | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const score = Number(r.confidence_score);
+  return {
+    summary: asText(r.summary) || undefined,
+    severity: typeof r.severity === "string" ? r.severity.toLowerCase().trim() : undefined,
+    root_cause: asText(r.root_cause) || undefined,
+    probable_fixes: asList(r.probable_fixes),
+    reproduction_steps: asList(r.reproduction_steps),
+    follow_up_tests: asList(r.follow_up_tests),
+    confidence_score: Number.isFinite(score) ? score : undefined,
+    notes: asText(r.notes) || undefined,
+    tasks: Array.isArray(r.tasks)
+      ? r.tasks.map((t, i) => {
+          const o = (t && typeof t === "object" ? t : {}) as Record<string, unknown>;
+          return {
+            id: String(o.id ?? i),
+            title: asText(o.title ?? t),
+            description: asText(o.description) || undefined,
+            priority: typeof o.priority === "string" ? o.priority : undefined,
+          };
+        })
+      : undefined,
+  };
+}
+
 /** A list where the order is the point: ranked fixes, ordered steps. */
 function Ranked({ items, ordered = true }: { items: string[]; ordered?: boolean }) {
   return (
@@ -405,7 +466,7 @@ export default function Home() {
     download("log-analysis.md", out.join("\n"), "text/markdown");
   };
 
-  const parsed = result?.parsed;
+  const parsed = normalise(result?.parsed);
   const sev = parsed?.severity ? SEVERITY[parsed.severity.toLowerCase()] : undefined;
 
   return (
