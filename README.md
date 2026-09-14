@@ -25,6 +25,13 @@ log is sent anywhere.
   each answer shows what it actually cost, including the reasoning tokens you
   paid for but never saw.
 
+## There is no hosted demo, deliberately
+
+Every analysis is a paid model call. A public instance would be billing my key
+for anyone who found the URL, so this runs on your own key or not at all.
+Screenshots are above, and the walkthrough is on
+[my portfolio](https://hussainnawaz.vercel.app/projects/ai-log-explainer).
+
 ## Running it
 
 You need an [OpenRouter](https://openrouter.ai/keys) API key with a little
@@ -108,8 +115,9 @@ backend/
     config.py     env loading, fails fast when the key is missing
   test_smoke.py
 ai-log-ui/
-  app/page.tsx    the whole interface
-  app/globals.css design tokens, authored in OKLCH
+  app/page.tsx              the whole interface
+  app/globals.css           design tokens, authored in OKLCH
+  components/ThemeToggle.tsx
 ```
 
 ## Tests

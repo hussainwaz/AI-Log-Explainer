@@ -13,3 +13,6 @@ node_modules/
 .next/
 out/
 .DS_Store
+
+# Editor / assistant scratch
+.claude/

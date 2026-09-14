@@ -1,6 +1,0 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    { "name": "ai-log-explainer", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--prefix", "ai-log-ui"], "port": 3001 }
-  ]
-}
